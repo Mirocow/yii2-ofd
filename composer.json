@@ -11,7 +11,7 @@
   "require": {
     "php": ">=7.0",
     "yiisoft/yii2": "~2",
-    "plusser/yii2-settings": "@dev"
+    "mirocow/yii2-settings": "@dev"
 
   },
   "autoload": {
