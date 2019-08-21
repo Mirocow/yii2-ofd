@@ -1,0 +1,22 @@
+{
+  "name": "mirocow/yii2-ofd",
+  "description": "Yii2 OFD ferma client",
+  "type": "yii2-extension",
+  "license": "BSD-3-Clause",
+  "support": {
+    "issues": "https://github.com/mirocow/yii2-ofd",
+    "source": "https://github.com/mirocow/yii2-ofd"
+  },
+  "minimum-stability": "stable",
+  "require": {
+    "php": ">=7.0",
+    "yiisoft/yii2": "~2",
+    "plusser/yii2-settings": "@dev"
+
+  },
+  "autoload": {
+    "psr-4": {
+      "mirocow\\ofd\\": "src"
+    }
+  }
+}
