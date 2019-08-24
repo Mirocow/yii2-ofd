@@ -22,8 +22,8 @@ use Yii;
  * @property string $create_at
  * @property string $update_at
  *
- * @property OfdCustomer[] $ofdCustomers
- * @property OfdReceiptItem[] $ofdReceiptItems
+ * @property Customer[] $ofdCustomers
+ * @property ReceiptItem[] $receiptItems
  */
 class PaymentAgentInfo extends \yii\db\ActiveRecord
 {
@@ -72,16 +72,16 @@ class PaymentAgentInfo extends \yii\db\ActiveRecord
     /**
      * @return \yii\db\ActiveQuery
      */
-    public function getOfdCustomers()
+    public function getCustomers()
     {
-        return $this->hasMany(OfdCustomer::class, ['payment_agent_info_id' => 'id']);
+        return $this->hasMany(Customer::class, ['payment_agent_info_id' => 'id']);
     }
 
     /**
      * @return \yii\db\ActiveQuery
      */
-    public function getOfdReceiptItems()
+    public function getReceiptItems()
     {
-        return $this->hasMany(OfdReceiptItem::class, ['payment_agent_info_id' => 'id']);
+        return $this->hasMany(ReceiptItem::class, ['payment_agent_info_id' => 'id']);
     }
 }

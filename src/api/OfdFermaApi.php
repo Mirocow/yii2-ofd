@@ -2,12 +2,16 @@
 
 namespace mirocow\ofd\api;
 
+use mirocow\ofd\exceptions\OfdException;
 use mirocow\ofd\models\AuthToken;
 use mirocow\ofd\models\Receipt;
 use mirocow\ofd\models\ReceiptItem;
 use mirocow\ofd\models\ReceiptStatus;
 use Yii;
 use yii\base\Component;
+use yii\base\Exception;
+use yii\helpers\ArrayHelper;
+use yii\helpers\Json;
 
 /**
  * @see https://ofd.ru/razrabotchikam/ferma
@@ -16,12 +20,14 @@ use yii\base\Component;
  */
 class OfdFermaApi extends Component
 {
-    public const REQUEST_RECEIPT = '/kkt/cloud/receipt';
+    const REQUEST_RECEIPT = '/kkt/cloud/receipt';
+
+    const REQUEST_STATUS = '/kkt/cloud/status';
 
     public $login;
     public $password;
+    public $ofdFermaApiUri = 'https://ferma.ofd.ru/api/';
 
-    private $ofdFermaApiUri = 'https://ferma.ofd.ru/api/';
     private $debug = false;
     private $logPath = '';
     private $email = '';
@@ -44,8 +50,12 @@ class OfdFermaApi extends Component
     {
         $result = $this->request('/Authorization/CreateAuthToken', [
             'Login' => $login,
-            'Password' => $password
+            'Password' => $password,
         ]);
+
+        if(!$result){
+            throw new Exception();
+        }
 
         if (!isset($result['AuthToken']) || !isset($result['ExpirationDateUtc'])) {
             $this->logMessage('Неверный формат ответа');
@@ -55,94 +65,106 @@ class OfdFermaApi extends Component
     }
 
     /**
-     * @see https://ofd.ru/razrabotchikam/ferma#%D1%84%D0%BE%D1%80%D0%BC%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5_%D0%BA%D0%B0%D1%81%D1%81%D0%BE%D0%B2%D0%BE%D0%B3%D0%BE_%D1%87%D0%B5%D0%BA%D0%B0
      * @param Receipt $receipt
      *
      * @return mixed
+     * @throws OfdException
      */
     public function addReceipt(Receipt $receipt)
     {
         $items = array();
 
-        foreach ($receipt->getItems() as $receiptItem) {
-            if (!$receiptItem instanceof ReceiptItem) {
-                continue;
-            }
-
+        /** @var ReceiptItem $receiptItem */
+        foreach ($receipt->getItems()->all() as $receiptItem) {
             $items[] = array(
-                'Label' => $receiptItem->getLabel(),
-                'Price' => $receiptItem->getPrice(),
-                'Quantity' => $receiptItem->getQuantity(),
-                'Amount' => $receiptItem->getAmount(),
-                'Vat' => $receiptItem->getVat()
+                'Label' => $receiptItem->label,
+                'Price' => $receiptItem->price,
+                'Quantity' => $receiptItem->quantity,
+                'Amount' => $receiptItem->amount,
+                'Vat' => $receiptItem->vat,
+                'PaymentMethod' => $receiptItem->payment_method,
             );
         }
 
         if (!count($items)) {
-            throw new publicException('Для заказа не передан список товаров');
+            throw new OfdException(Yii::t('app','Для заказа не передан список товаров'));
         }
 
-        $reciept = new stdClass();
-        $reciept->TaxationSystem = $receipt->tax;
+        $customerReceipt = new \stdClass();
+        $customerReceipt->TaxationSystem = $receipt->taxation_system;
         if (!empty($mail)) {
-            $reciept->Email = $mail;
+            $customerReceipt->Email = $mail;
         }
         if (!empty($phone)) {
-            $reciept->Phone = _ofd_ferma_format_phone($phone);
+            $customerReceipt->Phone = $this->fermaFormatPhone($phone);
         }
-        $reciept->Items = $items;
+        $customerReceipt->Items = $items;
+        /*$receipt->PaymentItems = [
+            'PaymentType' => 0,
+            'Sum' => '0.0',
+        ];*/
 
-        $request = new stdClass();
+        $request = new \stdClass();
         $request->Inn = $receipt->inn;
         $request->Type = $receipt->type;
         $request->InvoiceId = $receipt->invoice . $receipt->type;
         $request->LocalDate = date('Y-m-d\TH:i:s', $receipt->create_at);
-        $request->CustomerReceipt = $reciept;
+        $request->CustomerReceipt = $customerReceipt;
 
-        $data = new stdClass();
+        $data = new \stdClass();
         $data->Request = $request;
 
-        $result = $this->request( self::REQUEST_RECEIPT . '?' . http_build_query(['AuthToken' => $this->authToken]), $data);
+        $result = $this->request( self::REQUEST_RECEIPT . '?' . http_build_query(['AuthToken' => $this->authToken->getToken()]), $data);
 
-        if (!isset($result['ReceiptId'])) {
-            $this->logMessage('Неверный формат ответа');
+        if(!empty($result['ReceiptId'])){
+            $this->getReceiptStatus($result['ReceiptId'], $receipt);
         }
 
         return $result['ReceiptId'];
     }
 
     /**
-     * @see https://ofd.ru/razrabotchikam/ferma#%D0%BF%D1%80%D0%BE%D0%B2%D0%B5%D1%80%D0%BA%D0%B0_%D1%81%D1%82%D0%B0%D1%82%D1%83%D1%81%D0%B0_%D0%BA%D0%B0%D1%81%D1%81%D0%BE%D0%B2%D0%BE%D0%B3%D0%BE_%D1%87%D0%B5%D0%BA%D0%B0
-     * @param $receiptId
+     * @param string $receiptId
+     * @param Receipt $reciept
      *
-     * @return OfdFermaApiReceiptStatusModel
+     * @return bool
+     * @throws OfdException
      */
-    public function getReceiptStatus($receiptId)
+    public function getReceiptStatus(string $receiptId, Receipt $reciept)
     {
-        $result = $this->request('/kkt/cloud/status?' . http_build_query(['AuthToken' => $this->authToken]), [
+        $result = $this->request(self::REQUEST_STATUS . '?' . http_build_query(['AuthToken' => $this->authToken->getToken()]), [
             'Request' => [
-                'ReceiptId' => $receiptId
-            ]
+                'ReceiptId' => $receiptId,
+            ],
         ]);
 
         if(!isset($result['StatusCode'])) {
             $this->logMessage('Неверный формат ответа');
         }
 
-        $status = new ReceiptStatus();
-        $status->setCode($result['StatusCode']);
-        $status->setName($result['StatusName']);
-        $status->setMessage($result['StatusMessage']);
-        $status->setModifiedDate(strtotime($result['ModifiedDateUtc']));
-        $status->setReceiptDate(strtotime($result['ReceiptDateUtc']));
-        $status->setDeviceId($result['Device']['DeviceId']);
-        $status->setRnm($result['Device']['RNM']);
-        $status->setZn($result['Device']['ZN']);
-        $status->setFn($result['Device']['FN']);
-        $status->setFdn($result['Device']['FDN']);
-        $status->setFpd($result['Device']['FPD']);
+        $attributes = [
+            'receipt_id' => $reciept->id,
+            'receiptId' => $receiptId,
+            'status_code' => (string) $result['StatusCode'],
+            'status_name' => (string) $result['StatusName'],
+            'status_message' => (string) $result['StatusMessage'],
+            'modified_date_utc' => (string) $result['ModifiedDateUtc'],
+            'receipt_date_utc' => (string) $result['ReceiptDateUtc'],
+        ];
 
-        return $status;
+        if(!empty($result['Device'])){
+            $attributes = ArrayHelper::merge($attributes, [
+                'device_id' => (string) $result['Device']['DeviceId'],
+                'rnv' => (string) $result['Device']['RNM'],
+                'zn' => (string) $result['Device']['ZN'],
+                'fn' => (string) $result['Device']['FN'],
+                'fdn' => (string) $result['Device']['FDN'],
+                'fpd' => (string) $result['Device']['FPD'],
+            ]);
+        }
+
+        $status = new ReceiptStatus($attributes);
+        return $status->save();
     }
 
     /**
@@ -154,7 +176,7 @@ class OfdFermaApi extends Component
      */
     private function request($url, $data, $method = 'POST')
     {
-        $url = $this->ofdFermaApiUri . ltrim($url, '/');
+        $url = rtrim($this->ofdFermaApiUri,'/') . '/api/' . ltrim($url, '/');
 
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
@@ -166,7 +188,7 @@ class OfdFermaApi extends Component
 
             curl_setopt($ch, CURLOPT_HTTPHEADER, [
                 'Content-Type: application/json',
-                'Content-Length: ' . strlen($encoded)
+                'Content-Length: ' . strlen($encoded),
             ]);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $encoded);
         }
@@ -176,7 +198,7 @@ class OfdFermaApi extends Component
             $this->logMessage(curl_error($ch));
         }
 
-        $return = json_decode($result, true);
+        $return = Json::decode($result, true);
         if (!is_array($return) || !isset($return['Status'])) {
             $this->logMessage('Неверный формат ответа');
         }
@@ -186,20 +208,22 @@ class OfdFermaApi extends Component
             if ($return['Error']['Code'] && $val = $this->getErrorByCode($return['Error']['Code'], $data)) {
                 $message = $val;
             }
-
             $this->logMessage($message);
+        } else {
+            return $return['Data'];
         }
-
-        return $return['Data'];
-    }
-
-    private function logMessage($message)
-    {
-        Yii::debug($message, "ofd");
     }
 
     /**
-     * @see https://ofd.ru/razrabotchikam/ferma#%D0%BA%D0%BE%D0%B4%D1%8B_%D0%BE%D1%88%D0%B8%D0%B1%D0%BE%D0%BA
+     * @param $message
+     */
+    private function logMessage($message)
+    {
+        Yii::debug($message, "ofd");
+        throw new OfdException(Yii::t('app',$message));
+    }
+
+    /**
      * @param $code_id
      * @param $data
      *
@@ -211,11 +235,22 @@ class OfdFermaApi extends Component
 
         SWITCH ($code_id) {
             case 1019:
-                $msg = "Идентификатор счета '{$data['Request']['InvoiceId']}' уже существует в ОФД";
+                $msg = "Идентификатор счета '{$data->Request->InvoiceId}' уже существует в ОФД";
             break;
         }
 
         return $msg;
+    }
+
+    /**
+     * @param $str
+     *
+     * @return mixed
+     */
+    private function fermaFormatPhone($str)
+    {
+        $phone = str_replace([' ', '-', '(', ')'], '', $str);
+        return str_replace('+7', '8', $phone);
     }
 
 }

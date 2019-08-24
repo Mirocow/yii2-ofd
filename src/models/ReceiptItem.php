@@ -8,7 +8,7 @@ use Yii;
  * This is the model class for table "ofd_receipt_item".
  *
  * @property int $id
- * @property int $ofd_customer_id
+ * @property int $receipt_id
  * @property string $label
  * @property double $price
  * @property double $amount
@@ -43,14 +43,13 @@ class ReceiptItem extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['ofd_customer_id', 'quantity', 'payment_method', 'origin_country_code', 'payment_type', 'payment_agent_info_id'], 'integer'],
+            [['receipt_id', 'quantity', 'payment_method', 'origin_country_code', 'payment_type', 'payment_agent_info_id'], 'integer'],
             [['price', 'amount'], 'number'],
             [['create_at', 'update_at'], 'safe'],
             [['label', 'marking_code', 'marking_code_tructured'], 'string', 'max' => 50],
             [['vat', 'customs_declaration_number'], 'string', 'max' => 20],
-            [['payment_agent_info_id'], 'exist', 'skipOnError' => true, 'targetClass' => OfdPaymentAgentInfo::class, 'targetAttribute' => ['payment_agent_info_id' => 'id']],
-            [['ofd_customer_id'], 'exist', 'skipOnError' => true, 'targetClass' => OfdCustomer::class, 'targetAttribute' => ['ofd_customer_id' => 'id']],
-            [['receipt_id'], 'exist', 'skipOnError' => true, 'targetClass' => OfdReceipt::class, 'targetAttribute' => ['receipt_id' => 'id']],
+            [['payment_agent_info_id'], 'exist', 'skipOnError' => true, 'targetClass' => PaymentAgentInfo::class, 'targetAttribute' => ['payment_agent_info_id' => 'id']],
+            [['receipt_id'], 'exist', 'skipOnError' => true, 'targetClass' => Receipt::class, 'targetAttribute' => ['receipt_id' => 'id']],
         ];
     }
 
@@ -61,7 +60,6 @@ class ReceiptItem extends \yii\db\ActiveRecord
     {
         return [
             'id' => Yii::t('app', 'ID'),
-            'ofd_customer_id' => Yii::t('app', 'Ofd Customer ID'),
             'label' => Yii::t('app', 'Label'),
             'price' => Yii::t('app', 'Price'),
             'amount' => Yii::t('app', 'Amount'),
@@ -84,15 +82,7 @@ class ReceiptItem extends \yii\db\ActiveRecord
      */
     public function getPaymentAgentInfo()
     {
-        return $this->hasOne(OfdPaymentAgentInfo::class, ['id' => 'payment_agent_info_id']);
-    }
-
-    /**
-     * @return \yii\db\ActiveQuery
-     */
-    public function getOfdCustomer()
-    {
-        return $this->hasOne(OfdCustomer::class, ['id' => 'ofd_customer_id']);
+        return $this->hasOne(PaymentAgentInfo::class, ['id' => 'payment_agent_info_id']);
     }
 
     /**
@@ -100,6 +90,6 @@ class ReceiptItem extends \yii\db\ActiveRecord
      */
     public function getReceipt()
     {
-        return $this->hasOne(OfdReceipt::class, ['id' => 'receipt_id']);
+        return $this->hasOne(Receipt::class, ['id' => 'receipt_id']);
     }
 }

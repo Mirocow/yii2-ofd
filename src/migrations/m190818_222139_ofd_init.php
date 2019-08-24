@@ -1,5 +1,6 @@
 <?php
 
+use mirocow\settings\models\Settings;
 use yii\db\Expression;
 use yii\db\Migration;
 
@@ -13,30 +14,6 @@ class m190818_222139_ofd_init extends Migration
      */
     public function safeUp()
     {
-        if(!\settings\models\Settings::find()->where(['key' => 'ofd', 'group_name' => 'ofd'])->exists()) {
-            $this->insert(Settings::tableName(), [
-                'id'    => $id,
-                'key'   => 'ofd.inn',
-                'name'  => 'Наименование банка',
-                'value' => '',
-                'type'  => Settings::TYPE_STRING,
-                'group_name' => 'ofd',
-            ]);
-            $id++;
-        }
-
-        if(!\settings\models\Settings::find()->where(['key' => 'ofd', 'group_name' => 'ofd'])->exists()) {
-            $this->insert(Settings::tableName(), [
-                'id'    => $id,
-                'key'   => 'ofd.type',
-                'name'  => 'Наименование банка',
-                'value' => '',
-                'type'  => Settings::TYPE_STRING,
-                'group_name' => 'ofd',
-            ]);
-            $id++;
-        }
-
         $this->createTable('ofd_payment_agent_info', [
             'id' => $this->primaryKey(),
             'agent_type' => $this->string(50)->defaultValue('BANK_PAYMENT_AGENT'), // BANK_PAYMENT_AGENT
@@ -54,32 +31,16 @@ class m190818_222139_ofd_init extends Migration
             'update_at' => $this->timestamp()->null(),
         ]);
 
-        $this->createTable('ofd_customer', [
-            'id' => $this->primaryKey(),
-            'taxation_system' => $this->string(20)->defaultValue('Common')->comment('Система налогообложения'),
-            'email' => $this->string(50),
-            'phone' => $this->string(50),
-            /**
-             * @see https://ofd.ru/razrabotchikam/ferma#%D0%B2%D0%BE%D0%B7%D0%BC%D0%BE%D0%B6%D0%BD%D1%8B%D0%B5_%D0%B7%D0%BD%D0%B0%D1%87%D0%B5%D0%BD%D0%B8%D1%8F_%D0%BF%D1%80%D0%B8%D0%B7%D0%BD%D0%B0%D0%BA%D0%B0_%D0%BF%D1%80%D0%B5%D0%B4%D0%BC%D0%B5%D1%82%D0%B0_%D1%80%D0%B0%D1%81%D1%87%D0%B5%D1%82%D0%B0_%D0%BF%D0%BE%D0%BB%D1%8F_paymenttype
-             */
-            'payment_type' => $this->integer(2)->defaultValue(1)->comment('Способ оплаты.'), // 4
-            'custom_user_property' => $this->text(),
-            'payment_agent_info_id' => $this->integer(11)->comment('Данные платежного агента'),
-            'correction_info' => $this->text()->null()->comment('Корректирующие данные'),
-            'client_info' => $this->text()->comment('Данные о покупателе'),
-            'create_at' => $this->timestamp()->defaultValue(new Expression('CURRENT_TIMESTAMP')),
-            'update_at' => $this->timestamp()->null(),
-        ]);
-
-        // Items
         $this->createTable('ofd_receipt_item', [
             'id' => $this->primaryKey(),
-            'customer_id' => $this->integer(11)->null(),
             'receipt_id' => $this->integer(11),
             'label' => $this->string(50),
             'price' => $this->float(15),
             'amount' => $this->float(15),
             'quantity' => $this->integer(5),
+            /**
+             * 3.1.1. Возможные значения вида вычисляемого НДС
+             */
             'vat' => $this->string(20),
             'marking_code' => $this->string(50),
             'marking_code_tructured' => $this->string(50),
@@ -93,10 +54,14 @@ class m190818_222139_ofd_init extends Migration
                 7 – оплата в кредит.
              */
             'payment_method' => $this->integer(2)->defaultValue(1)->comment('Признак способа расчета'),
+            /**
+             * https://ru.wikipedia.org/wiki/Общероссийский_классификатор_стран_мира
+             */
             'origin_country_code' => $this->integer(3),
             'customs_declaration_number' => $this->string(20),
             /**
-             * @see https://ofd.ru/razrabotchikam/ferma#%D0%B2%D0%BE%D0%B7%D0%BC%D0%BE%D0%B6%D0%BD%D1%8B%D0%B5_%D0%B7%D0%BD%D0%B0%D1%87%D0%B5%D0%BD%D0%B8%D1%8F_%D0%BF%D1%80%D0%B8%D0%B7%D0%BD%D0%B0%D0%BA%D0%B0_%D0%BF%D1%80%D0%B5%D0%B4%D0%BC%D0%B5%D1%82%D0%B0_%D1%80%D0%B0%D1%81%D1%87%D0%B5%D1%82%D0%B0_%D0%BF%D0%BE%D0%BB%D1%8F_paymenttype
+             * 3.1.4. Возможные значения признака предмета расчета
+             * @see https://ofd.ru/razrabotchikam/ferma#возможные_значения_признака_предмета_расчета_поля_paymenttype
              */
             'payment_type' => $this->integer(2)->defaultValue(1)->comment('Способ оплаты.'), // 4
             'payment_agent_info_id' => $this->integer(11)->null()->comment('Данные платежного агента'),
@@ -107,18 +72,155 @@ class m190818_222139_ofd_init extends Migration
         $this->createTable('ofd_receipt', [
             'id' => $this->primaryKey(),
             'inn' => $this->string(12)->comment('ИНН лица, от имени которого генерируется кассовый документ (чек)'),
-            'type' => $this->string(20)->defaultValue('Income')->comment('Тип формируемого документа'),
+            /**
+             * 3.1.2. Типы формируемых чеков
+             */
+            'type' => $this->string(20)->defaultValue('Income')->comment('Типы формируемых чеков'),
             'invoice' => $this->string(20)->comment('Идентификатор счета, на основании которого генерируется чек'),
-            'customer_id' => $this->integer(11)->comment('Содержимое клиентского чека'),
+            'id' => $this->primaryKey(),
+            /**
+             * 3.1.3. Возможные значения типа налогообложения
+             * @see https://ofd.ru/razrabotchikam/ferma#возможные_значения_типа_налогообложения_поле_taxationsystem
+             */
+            'taxation_system' => $this->string(20)->defaultValue('Common')->comment('Система налогообложения'),
+            'email' => $this->string(50),
+            'phone' => $this->string(50),
+            /**
+             * 3.1.4. Возможные значения признака предмета расчета
+             * @see https://ofd.ru/razrabotchikam/ferma#возможные_значения_признака_предмета_расчета_поля_paymenttype
+             */
+            'payment_type' => $this->integer(2)->defaultValue(1)->comment('Способ оплаты.'), // 4
+            'custom_user_property' => $this->text(),
+            'payment_agent_info_id' => $this->integer(11)->comment('Данные платежного агента'),
+            'correction_info' => $this->text()->null()->comment('Корректирующие данные'),
+            'client_info' => $this->text()->comment('Данные о покупателе'),
             'create_at' => $this->timestamp()->defaultValue(new Expression('CURRENT_TIMESTAMP')),
             'update_at' => $this->timestamp()->null(),
         ]);
 
-        $this->addForeignKey('fk_ofd_receipt_item_customer', '{{%ofd_receipt_item}}', 'customer_id', '{{%ofd_customer}}', 'id', 'CASCADE', 'NO ACTION');
+        $this->createTable('ofd_receipt_status', [
+            'id' => $this->primaryKey(),
+            'receipt_id' => $this->integer(11),
+            'receiptId' => $this->string(30)->null(),
+            'status_code' => $this->integer(11),
+            'status_name' => $this->string(20)->null(),
+            'status_message' => $this->string(255)->null(),
+            'modified_date_utc' => $this->timestamp()->null(),
+            'receipt_date_utc' => $this->timestamp()->null(),
+            'device_id' => $this->string(20)->null(),
+            'rnm' => $this->string(20)->null(),
+            'zn' => $this->string(20)->null(),
+            'fn' => $this->string(20)->null(),
+            'fdn' => $this->string(20)->null(),
+            'fpd' => $this->string(20)->null(),
+            'create_at' => $this->timestamp()->defaultValue(new Expression('CURRENT_TIMESTAMP')),
+            'update_at' => $this->timestamp()->null(),
+        ]);
+
         $this->addForeignKey('fk_ofd_receipt_item_receipt', '{{%ofd_receipt_item}}', 'receipt_id', '{{%ofd_receipt}}', 'id', 'CASCADE', 'NO ACTION');
-        $this->addForeignKey('fk_ofd_customer_agent_info', '{{%ofd_customer}}', 'payment_agent_info_id', '{{%ofd_payment_agent_info}}', 'id', 'CASCADE', 'NO ACTION');
+        $this->addForeignKey('fk_ofd_receipt_status_receipt', '{{%ofd_receipt_status}}', 'receipt_id', '{{%ofd_receipt}}', 'id', 'CASCADE', 'NO ACTION');
         $this->addForeignKey('fk_ofd_receipt_item_agent_info', '{{%ofd_receipt_item}}', 'payment_agent_info_id', '{{%ofd_payment_agent_info}}', 'id', 'CASCADE', 'NO ACTION');
-        $this->addForeignKey('fk_ofd_receipt_customer', '{{%ofd_receipt}}', 'customer_id', '{{%ofd_customer}}', 'id', 'CASCADE', 'NO ACTION');
+
+        $id = Settings::find()
+            ->max('id');
+
+        $id++;
+
+        if(!Settings::find()->where(['key' => 'inn', 'group_name' => 'ofd'])->exists()) {
+            $this->insert(Settings::tableName(), [
+                'id'    => $id,
+                'key'   => 'inn',
+                'name'  => 'ИНН организации',
+                'value' => '',
+                'type'  => Settings::TYPE_STRING,
+                'group_name' => 'ofd',
+            ]);
+            $id++;
+        }
+
+        if(!Settings::find()->where(['key' => 'type', 'group_name' => 'ofd'])->exists()) {
+            $this->insert(Settings::tableName(), [
+                'id'    => $id,
+                'key'   => 'type',
+                'name'  => 'Тип формируемого документа',
+                'value' => '',
+                'type'  => Settings::TYPE_STRING,
+                'group_name' => 'ofd',
+            ]);
+            $id++;
+        }
+
+        if(!Settings::find()->where(['key' => 'email', 'group_name' => 'ofd'])->exists()) {
+            $this->insert(Settings::tableName(), [
+                'id'    => $id,
+                'key'   => 'email',
+                'name'  => 'Адрес e-mail для уведомлений',
+                'value' => '',
+                'type'  => Settings::TYPE_STRING,
+                'group_name' => 'ofd',
+            ]);
+            $id++;
+        }
+
+        if(!Settings::find()->where(['key' => 'tax_system', 'group_name' => 'ofd'])->exists()) {
+            $this->insert(Settings::tableName(), [
+                'id'    => $id,
+                'key'   => 'tax_system',
+                'name'  => 'Система налогообложения',
+                'value' => '',
+                'type'  => Settings::TYPE_STRING,
+                'group_name' => 'ofd',
+            ]);
+            $id++;
+        }
+
+        if(!Settings::find()->where(['key' => 'tax', 'group_name' => 'ofd'])->exists()) {
+            $this->insert(Settings::tableName(), [
+                'id'    => $id,
+                'key'   => 'tax',
+                'name'  => 'Ставка НДС по умолчанию',
+                'value' => '',
+                'type'  => Settings::TYPE_STRING,
+                'group_name' => 'ofd',
+            ]);
+            $id++;
+        }
+
+        if(!Settings::find()->where(['key' => 'payment_method', 'group_name' => 'ofd'])->exists()) {
+            $this->insert(Settings::tableName(), [
+                'id'    => $id,
+                'key'   => 'payment_method',
+                'name'  => 'Признак способа расчета',
+                'value' => '',
+                'type'  => Settings::TYPE_STRING,
+                'group_name' => 'ofd',
+            ]);
+            $id++;
+        }
+
+        if(!Settings::find()->where(['key' => 'payment_type', 'group_name' => 'ofd'])->exists()) {
+            $this->insert(Settings::tableName(), [
+                'id'    => $id,
+                'key'   => 'payment_type',
+                'name'  => 'Признак предмета расчета',
+                'value' => '',
+                'type'  => Settings::TYPE_STRING,
+                'group_name' => 'ofd',
+            ]);
+            $id++;
+        }
+
+        if(!Settings::find()->where(['key' => 'payment_items.payment_type', 'group_name' => 'ofd'])->exists()) {
+            $this->insert(Settings::tableName(), [
+                'id'    => $id,
+                'key'   => 'payment_items.payment_type',
+                'name'  => 'Типы оплат',
+                'value' => '',
+                'type'  => Settings::TYPE_STRING,
+                'group_name' => 'ofd',
+            ]);
+            $id++;
+        }
 
     }
 

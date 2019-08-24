@@ -2,193 +2,82 @@
 
 namespace mirocow\ofd\models;
 
-class ReceiptStatus
+use Yii;
+
+/**
+ * This is the model class for table "ofd_receipt_status".
+ *
+ * @property int $id
+ * @property int $receipt_id
+ * @property string $status_code
+ * @property string $status_name
+ * @property string $status_message
+ * @property string $modified_date_utc
+ * @property string $receipt_date_utc
+ * @property string $device_id
+ * @property string $rnm
+ * @property string $zn
+ * @property string $fn
+ * @property string $fdn
+ * @property string $fpd
+ * @property string $create_at
+ * @property string $update_at
+ *
+ * @property Receipt $receipt
+ */
+class ReceiptStatus extends \yii\db\ActiveRecord
 {
-    private $code;
-    private $name;
-    private $message;
-    private $modifiedDate;
-    private $receiptDate;
-    private $deviceId;
-    private $rnm;
-    private $zn;
-    private $fn;
-    private $fdn;
-    private $fpd;
-
     /**
-     * @return mixed
+     * {@inheritdoc}
      */
-    public function getCode()
+    public static function tableName()
     {
-        return $this->code;
+        return 'ofd_receipt_status';
     }
 
     /**
-     * @param mixed $code
+     * {@inheritdoc}
      */
-    public function setCode($code)
+    public function rules()
     {
-        $this->code = $code;
+        return [
+            [['receipt_id'], 'integer'],
+            [['create_at', 'update_at'], 'safe'],
+            [['status_code', 'status_name', 'modified_date_utc', 'receipt_date_utc', 'device_id', 'rnm', 'zn', 'fn', 'fdn', 'fpd'], 'string', 'max' => 20],
+            [['status_message'], 'string', 'max' => 255],
+            [['receipt_id'], 'exist', 'skipOnError' => true, 'targetClass' => Receipt::class, 'targetAttribute' => ['receipt_id' => 'id']],
+        ];
     }
 
     /**
-     * @return mixed
+     * {@inheritdoc}
      */
-    public function getName()
+    public function attributeLabels()
     {
-        return $this->name;
+        return [
+            'id' => Yii::t('app', 'ID'),
+            'receipt_id' => Yii::t('app', 'Receipt ID'),
+            'status_code' => Yii::t('app', 'Status Code'),
+            'status_name' => Yii::t('app', 'Status Name'),
+            'status_message' => Yii::t('app', 'Status Message'),
+            'modified_date_utc' => Yii::t('app', 'Modified Date Utc'),
+            'receipt_date_utc' => Yii::t('app', 'Receipt Date Utc'),
+            'device_id' => Yii::t('app', 'Device ID'),
+            'rnm' => Yii::t('app', 'Rnm'),
+            'zn' => Yii::t('app', 'Zn'),
+            'fn' => Yii::t('app', 'Fn'),
+            'fdn' => Yii::t('app', 'Fdn'),
+            'fpd' => Yii::t('app', 'Fpd'),
+            'create_at' => Yii::t('app', 'Create At'),
+            'update_at' => Yii::t('app', 'Update At'),
+        ];
     }
 
     /**
-     * @param mixed $name
+     * @return \yii\db\ActiveQuery
      */
-    public function setName($name)
+    public function getReceipt()
     {
-        $this->name = $name;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getMessage()
-    {
-        return $this->message;
-    }
-
-    /**
-     * @param mixed $message
-     */
-    public function setMessage($message)
-    {
-        $this->message = $message;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getModifiedDate()
-    {
-        return $this->modifiedDate;
-    }
-
-    /**
-     * @param mixed $modifiedDate
-     */
-    public function setModifiedDate($modifiedDate)
-    {
-        $this->modifiedDate = $modifiedDate;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getReceiptDate()
-    {
-        return $this->receiptDate;
-    }
-
-    /**
-     * @param mixed $receiptDate
-     */
-    public function setReceiptDate($receiptDate)
-    {
-        $this->receiptDate = $receiptDate;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getDeviceId()
-    {
-        return $this->deviceId;
-    }
-
-    /**
-     * @param mixed $deviceId
-     */
-    public function setDeviceId($deviceId)
-    {
-        $this->deviceId = $deviceId;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getRnm()
-    {
-        return $this->rnm;
-    }
-
-    /**
-     * @param mixed $rnm
-     */
-    public function setRnm($rnm)
-    {
-        $this->rnm = $rnm;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getZn()
-    {
-        return $this->zn;
-    }
-
-    /**
-     * @param mixed $zn
-     */
-    public function setZn($zn)
-    {
-        $this->zn = $zn;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getFn()
-    {
-        return $this->fn;
-    }
-
-    /**
-     * @param mixed $fn
-     */
-    public function setFn($fn)
-    {
-        $this->fn = $fn;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getFdn()
-    {
-        return $this->fdn;
-    }
-
-    /**
-     * @param mixed $fdn
-     */
-    public function setFdn($fdn)
-    {
-        $this->fdn = $fdn;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getFpd()
-    {
-        return $this->fpd;
-    }
-
-    /**
-     * @param mixed $fpd
-     */
-    public function setFpd($fpd)
-    {
-        $this->fpd = $fpd;
+        return $this->hasOne(Receipt::class, ['id' => 'receipt_id']);
     }
 }
