@@ -11,8 +11,7 @@
   "require": {
     "php": ">=7.0",
     "yiisoft/yii2": "~2",
-    "mirocow/yii2-settings": "@dev"
-
+    "mirocow/yii2-settings": "~1.1"
   },
   "autoload": {
     "psr-4": {
