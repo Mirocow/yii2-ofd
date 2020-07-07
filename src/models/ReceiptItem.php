@@ -18,7 +18,7 @@ class ReceiptItem extends Model
 
     public $label;
     public $price;
-    public double $amount;
+    public $amount;
     public $quantity;
     public $vat;
 
