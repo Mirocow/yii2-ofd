@@ -6,11 +6,19 @@ use Yii;
 use yii\base\Model;
 use yii\db\Exception;
 
+/**
+ * Class Settings
+ * @package mirocow\ofd\models
+ */
 class Settings extends Model
 {
+    private $bankname;
+    private $bik;
+    private $correspondentaccount;
+    private $invoicenumber;
     private $inn;
-    private $type;
     private $email;
+    private $phone;
     private $taxsystem;
     private $tax;
     private $paymentMethod;
@@ -24,8 +32,10 @@ class Settings extends Model
     {
         return [
             [['inn'], 'string', 'max' => 12],
-            [['type', 'taxSystem', 'tax', 'paymentMethod', 'paymentType', 'paymentItemsPaymentType'], 'safe'],
+            [['taxSystem', 'tax', 'paymentMethod', 'paymentType', 'paymentItemsPaymentType'], 'safe'],
             [['email'], 'email'],
+            [['bankname', 'bik', 'correspondentaccount', 'invoicenumber', 'kpp', 'organisationname', 'organisationaddress'], 'string'],
+            [['phone'], 'string', 'max' => 14],
             [['inn'], 'validateInn'],
         ];
     }
@@ -36,9 +46,16 @@ class Settings extends Model
     public function attributeLabels()
     {
         return [
-            'inn' => Yii::t('app', 'Inn'),
-            'type' => Yii::t('app', 'Type'),
+            'bankname' => Yii::t('app', 'Bank name'),
+            'bik' => Yii::t('app', 'BIK'),
+            'correspondentaccount' => Yii::t('app', 'Correspondent account'),
+            'invoicenumber' => Yii::t('app', 'Invoice number'),
+            'inn' => Yii::t('app', 'INN'),
+            'kpp' => Yii::t('app', 'KPP'),
+            'organisationname' => Yii::t('app', 'Organisation name'),
+            'organisationaddress' => Yii::t('app', 'Organisation address'),
             'email' => Yii::t('app', 'Email'),
+            'phone' => Yii::t('app', 'Phone'),
             'taxSystem' => Yii::t('app', 'Tax System'),
             'tax' => Yii::t('app', 'Tax'),
             'paymentMethod' => Yii::t('app', 'Payment Method'),
@@ -95,69 +112,170 @@ class Settings extends Model
         return $result;
     }
 
+    /**
+     * @throws Exception
+     * @throws \yii\base\Exception
+     */
     public function save()
     {
         try {
-
-            $model = \mirocow\settings\models\Settings::find()->where([
-                'key' => 'inn',
-                'group_name' => 'ofd',
-            ])->one();
-            $model->value = $this->inn;
-            $model->save();
-
-            $model = \mirocow\settings\models\Settings::find()->where([
-                'key' => 'type',
-                'group_name' => 'ofd',
-            ])->one();
-            $model->value = $this->type;
-            $model->save();
-
-            $model = \mirocow\settings\models\Settings::find()->where([
-                'key' => 'email',
-                'group_name' => 'ofd',
-            ])->one();
-            $model->value = $this->email;
-            $model->save();
-
-            $model = \mirocow\settings\models\Settings::find()->where([
-                'key' => 'tax_system',
-                'group_name' => 'ofd',
-            ])->one();
-            $model->value = $this->taxsystem;
-            $model->save();
-
-            $model = \mirocow\settings\models\Settings::find()->where([
-                'key' => 'tax',
-                'group_name' => 'ofd',
-            ])->one();
-            $model->value = $this->tax;
-            $model->save();
-
-            $model = \mirocow\settings\models\Settings::find()->where([
-                'key' => 'payment_method',
-                'group_name' => 'ofd',
-            ])->one();
-            $model->value = $this->paymentMethod;
-            $model->save();
-
-            $model = \mirocow\settings\models\Settings::find()->where([
-                'key' => 'payment_type',
-                'group_name' => 'ofd',
-            ])->one();
-            $model->value = $this->paymentType;
-            $model->save();
-
-            $model = \mirocow\settings\models\Settings::find()->where([
-                'key' => 'payment_items.payment_type',
-                'group_name' => 'ofd',
-            ])->one();
-            $model->value = $this->paymentItemsPaymentType;
-            $model->save();
-
+            foreach (array_keys($this->attributeLabels()) as $key){
+                $this->setingsSave($key, $this->{$key});
+            }
         } catch (Exception $e){
             throw $e;
         }
+    }
+
+    /**
+     * @param $key
+     * @param string $value
+     * @param string $group_name
+     *
+     * @throws \yii\base\Exception
+     */
+    public function setingsSave($key, $value = '', $group_name = 'ofd')
+    {
+        $model = \mirocow\settings\models\Settings::find()->where([
+            'key' => $key,
+            'group_name' => $group_name,
+        ])->one();
+        if(!$model){
+            $model = new \mirocow\settings\models\Settings();
+            $model->type = 1;
+            $model->key = $key;
+            $model->group_name = $group_name;
+        }
+        $model->value = $value;
+        if(!$model->save()){
+            throw new \yii\base\Exception();
+        }
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getBankName()
+    {
+        $model = \mirocow\settings\models\Settings::find()
+            ->where(['key'   => 'bankname', 'group_name' => 'ofd'])->one();
+        return $model->value ?? '';
+    }
+
+    /**
+     * @param $value
+     */
+    public function setBankName($value)
+    {
+        $this->bankname = $value;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getBik()
+    {
+        $model = \mirocow\settings\models\Settings::find()
+            ->where(['key'   => 'bik', 'group_name' => 'ofd'])->one();
+        return $model->value ?? '';
+    }
+
+    /**
+     * @param $value
+     */
+    public function setBik($value)
+    {
+        $this->bik = $value;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getCorrespondentAccount()
+    {
+        $model = \mirocow\settings\models\Settings::find()
+            ->where(['key'   => 'correspondentaccount', 'group_name' => 'ofd'])->one();
+        return $model->value ?? '';
+    }
+
+    /**
+     * @param $value
+     */
+    public function setCorrespondentAccount($value)
+    {
+        $this->correspondentaccount = $value;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getInvoiceNumber()
+    {
+        $model = \mirocow\settings\models\Settings::find()
+            ->where(['key'   => 'invoicenumber', 'group_name' => 'ofd'])->one();
+        return $model->value ?? '';
+    }
+
+    /**
+     * @param $value
+     */
+    public function setInvoiceNumber($value)
+    {
+        $this->invoicenumber = $value;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getKPP()
+    {
+        $model = \mirocow\settings\models\Settings::find()
+            ->where(['key'   => 'kpp', 'group_name' => 'ofd'])->one();
+        return $model->value ?? '';
+    }
+
+    /**
+     * @param $value
+     */
+    public function setKPP($value)
+    {
+        $this->kpp = $value;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getOrganisationName()
+    {
+        $model = \mirocow\settings\models\Settings::find()
+            ->where(['key'   => 'organisationname', 'group_name' => 'ofd'])->one();
+        return $model->value ?? '';
+    }
+
+    /**
+     * @param $value
+     */
+    public function setOrganisationName($value)
+    {
+        $this->organisationname = $value;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getOrganisationAddress()
+    {
+        $model = \mirocow\settings\models\Settings::find()
+            ->where(['key'   => 'organisationaddress', 'group_name' => 'ofd'])->one();
+        return $model->value ?? '';
+    }
+
+    /**
+     * @param $value
+     */
+    public function setOrganisationAddress($value)
+    {
+        $this->organisationaddress = $value;
     }
 
     /**
@@ -167,7 +285,7 @@ class Settings extends Model
     {
         $model = \mirocow\settings\models\Settings::find()
             ->where(['key'   => 'inn', 'group_name' => 'ofd'])->one();
-        return $model->value;
+        return $model->value ?? '';
     }
 
     /**
@@ -181,29 +299,11 @@ class Settings extends Model
     /**
      * @return mixed
      */
-    public function getType()
-    {
-        $model = \mirocow\settings\models\Settings::find()
-            ->where(['key'   => 'type', 'group_name' => 'ofd'])->one();
-        return $model->value;
-    }
-
-    /**
-     * @param $value
-     */
-    public function setType($value)
-    {
-        $this->type = $value;
-    }
-
-    /**
-     * @return mixed
-     */
     public function getEmail()
     {
         $model = \mirocow\settings\models\Settings::find()
             ->where(['key'   => 'email', 'group_name' => 'ofd'])->one();
-        return $model->value;
+        return $model->value ?? '';
     }
 
     /**
@@ -217,11 +317,29 @@ class Settings extends Model
     /**
      * @return mixed
      */
+    public function getPhone()
+    {
+        $model = \mirocow\settings\models\Settings::find()
+            ->where(['key'   => 'phone', 'group_name' => 'ofd'])->one();
+        return $model->value ?? '';
+    }
+
+    /**
+     * @param $value
+     */
+    public function setPhone($value)
+    {
+        $this->phone = $value;
+    }
+
+    /**
+     * @return mixed
+     */
     public function getTaxSystem()
     {
         $model = \mirocow\settings\models\Settings::find()
             ->where(['key'   => 'tax_system', 'group_name' => 'ofd'])->one();
-        return $model->value;
+        return $model->value ?? '';
     }
 
     /**
@@ -239,7 +357,7 @@ class Settings extends Model
     {
         $model = \mirocow\settings\models\Settings::find()
             ->where(['key'   => 'tax', 'group_name' => 'ofd'])->one();
-        return $model->value;
+        return $model->value ?? '';
     }
 
     /**
@@ -257,7 +375,7 @@ class Settings extends Model
     {
         $model = \mirocow\settings\models\Settings::find()
             ->where(['key'   => 'payment_method', 'group_name' => 'ofd'])->one();
-        return $model->value;
+        return $model->value ?? '';
     }
 
     /**
@@ -275,7 +393,7 @@ class Settings extends Model
     {
         $model = \mirocow\settings\models\Settings::find()
             ->where(['key'   => 'payment_type', 'group_name' => 'ofd'])->one();
-        return $model->value;
+        return $model->value ?? '';
     }
 
     /**
@@ -293,7 +411,7 @@ class Settings extends Model
     {
         $model = \mirocow\settings\models\Settings::find()
             ->where(['key'   => 'payment_items.payment_type', 'group_name' => 'ofd'])->one();
-        return $model->value;
+        return $model->value ?? '';
     }
 
     /**

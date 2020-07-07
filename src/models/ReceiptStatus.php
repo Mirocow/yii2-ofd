@@ -7,8 +7,8 @@ use Yii;
 /**
  * This is the model class for table "ofd_receipt_status".
  *
- * @property int $id
- * @property int $receipt_id
+ * @property string $invoice
+ * @property string $type
  * @property string $status_code
  * @property string $status_name
  * @property string $status_message
@@ -23,7 +23,6 @@ use Yii;
  * @property string $create_at
  * @property string $update_at
  *
- * @property Receipt $receipt
  */
 class ReceiptStatus extends \yii\db\ActiveRecord
 {
@@ -41,11 +40,20 @@ class ReceiptStatus extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['receipt_id'], 'integer'],
             [['create_at', 'update_at'], 'safe'],
             [['status_code', 'status_name', 'modified_date_utc', 'receipt_date_utc', 'device_id', 'rnm', 'zn', 'fn', 'fdn', 'fpd'], 'string', 'max' => 20],
+            [['invoice', 'type'], 'string', 'max' => 20],
             [['status_message'], 'string', 'max' => 255],
-            [['receipt_id'], 'exist', 'skipOnError' => true, 'targetClass' => Receipt::class, 'targetAttribute' => ['receipt_id' => 'id']],
+        ];
+    }
+
+    public function behaviors()
+    {
+        return [
+            'class' => TimestampBehavior::className(),
+            'createdAtAttribute' => 'create_at',
+            'updatedAtAttribute' => 'update_at',
+            'value' => new Expression('NOW()'),
         ];
     }
 
@@ -56,7 +64,8 @@ class ReceiptStatus extends \yii\db\ActiveRecord
     {
         return [
             'id' => Yii::t('app', 'ID'),
-            'receipt_id' => Yii::t('app', 'Receipt ID'),
+            'invoice' => Yii::t('app', 'Invoice'),
+            'type' => Yii::t('app', 'Type'),
             'status_code' => Yii::t('app', 'Status Code'),
             'status_name' => Yii::t('app', 'Status Name'),
             'status_message' => Yii::t('app', 'Status Message'),
@@ -71,13 +80,5 @@ class ReceiptStatus extends \yii\db\ActiveRecord
             'create_at' => Yii::t('app', 'Create At'),
             'update_at' => Yii::t('app', 'Update At'),
         ];
-    }
-
-    /**
-     * @return \yii\db\ActiveQuery
-     */
-    public function getReceipt()
-    {
-        return $this->hasOne(Receipt::class, ['id' => 'receipt_id']);
     }
 }

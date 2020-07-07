@@ -2,7 +2,9 @@
 
 namespace mirocow\ofd\helpers;
 
+use mirocow\settings\models\Settings;
 use Yii;
+use yii\web\NotFoundHttpException;
 
 class SettingsHelper
 {
@@ -95,5 +97,4 @@ class SettingsHelper
             '1' => Yii::t('app', 'Non Cash'),
         ];
     }
-
 }

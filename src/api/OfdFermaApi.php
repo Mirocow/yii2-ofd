@@ -2,6 +2,7 @@
 
 namespace mirocow\ofd\api;
 
+use mirocow\ofd\models\Settings;
 use mirocow\ofd\exceptions\OfdException;
 use mirocow\ofd\models\AuthToken;
 use mirocow\ofd\models\Receipt;
@@ -24,6 +25,10 @@ class OfdFermaApi extends Component
 
     const REQUEST_STATUS = '/kkt/cloud/status';
 
+    const TYPE_INCOME = 'Income';
+
+    const TYPE_INCOME_RETURN = 'IncomeReturn';
+
     public $login;
     public $password;
     public $ofdFermaApiUri = 'https://ferma.ofd.ru/api/';
@@ -33,9 +38,14 @@ class OfdFermaApi extends Component
     private $email = '';
     private $authToken;
 
+    /** @var Settings */
+    private $settings;
+
     public function init()
     {
         $this->getAuthToken($this->login, $this->password);
+
+        $this->settings = new Settings();
 
         parent::init();
     }
@@ -66,48 +76,74 @@ class OfdFermaApi extends Component
 
     /**
      * @param Receipt $receipt
+     * @param string $type see: https://ofd.ru/razrabotchikam/ferma#%D1%82%D0%B8%D0%BF%D1%8B_%D1%84%D0%BE%D1%80%D0%BC%D0%B8%D1%80%D1%83%D0%B5%D0%BC%D1%8B%D1%85_%D1%87%D0%B5%D0%BA%D0%BE%D0%B2_%D0%BF%D0%BE%D0%BB%D0%B5_type
      *
      * @return mixed
      * @throws OfdException
      */
-    public function addReceipt(Receipt $receipt)
+    public function addReceipt(Receipt $receipt, $type = self::TYPE_INCOME)
     {
+        $invoiceId = $receipt->invoice . $type;
+
+        if ($this->checkReceipt($receipt)){
+            $this->logMessage("Чек {$type} для заказа {$invoiceId} уже существует в реестре");
+        }
+
         $items = array();
 
+        SWITCH($this->settings->tax){
+            case 'vat0':
+                $vat = 'Vat0';
+            break;
+
+            case 'vat10':
+                $vat = 'Vat10';
+            break;
+
+            case 'vat18':
+                $vat = 'Vat18';
+            break;
+
+            case 'vat110':
+                $vat = 'CalculatedVat10110';
+            break;
+
+            case 'vat118':
+                $vat = 'CalculatedVat18118';
+            break;
+
+            default:
+                $vat = $ofd_nds;
+        }
+
+        $paymentMethod = $this->settings->paymentMethod;
+
         /** @var ReceiptItem $receiptItem */
-        foreach ($receipt->getItems()->all() as $receiptItem) {
+        foreach ($receipt->getItems() as $receiptItem) {
             $items[] = array(
                 'Label' => $receiptItem->label,
                 'Price' => $receiptItem->price,
                 'Quantity' => $receiptItem->quantity,
                 'Amount' => $receiptItem->amount,
-                'Vat' => $receiptItem->vat,
-                'PaymentMethod' => $receiptItem->payment_method,
+                'Vat' => $receiptItem->vat ?? $vat,
+                'PaymentMethod' => $receiptItem->payment_method ?? $paymentMethod,
             );
         }
 
         if (!count($items)) {
-            throw new OfdException(Yii::t('app','Для заказа не передан список товаров'));
+            $this->logMessage(Yii::t('app','Для заказа не передан список товаров'));
         }
 
         $customerReceipt = new \stdClass();
-        $customerReceipt->TaxationSystem = $receipt->taxation_system;
-        if (!empty($mail)) {
-            $customerReceipt->Email = $mail;
-        }
-        if (!empty($phone)) {
-            $customerReceipt->Phone = $this->fermaFormatPhone($phone);
-        }
+        $customerReceipt->TaxationSystem = $this->settings->taxSystem;
+        $customerReceipt->Email = $this->settings->email;
+        $customerReceipt->Phone = $this->fermaFormatPhone($this->settings->phone);
         $customerReceipt->Items = $items;
-        /*$receipt->PaymentItems = [
-            'PaymentType' => 0,
-            'Sum' => '0.0',
-        ];*/
 
         $request = new \stdClass();
-        $request->Inn = $receipt->inn;
-        $request->Type = $receipt->type;
-        $request->InvoiceId = $receipt->invoice . $receipt->type;
+        $request->Inn = $this->settings->inn;
+        $request->Type = $type;
+        $request->InvoiceId = $invoiceId;
         $request->LocalDate = date('Y-m-d\TH:i:s', $receipt->create_at);
         $request->CustomerReceipt = $customerReceipt;
 
@@ -143,7 +179,8 @@ class OfdFermaApi extends Component
         }
 
         $attributes = [
-            'receipt_id' => $reciept->id,
+            'invoice' => $receipt->invoice,
+            'type' => $reciept->type,
             'receiptId' => $receiptId,
             'status_code' => (string) $result['StatusCode'],
             'status_name' => (string) $result['StatusName'],
@@ -165,6 +202,18 @@ class OfdFermaApi extends Component
 
         $status = new ReceiptStatus($attributes);
         return $status->save();
+    }
+
+    /**
+     * @param Receipt $reciept
+     *
+     * @return bool
+     */
+    public function checkReceipt(Receipt $reciept)
+    {
+        return ReceiptStatus::find()
+            ->where(['invoice' => $reciept->invoice, 'type' => $reciept->type])
+            ->exists();
     }
 
     /**

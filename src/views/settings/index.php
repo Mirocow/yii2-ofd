@@ -18,13 +18,27 @@ use yii\helpers\ArrayHelper;
 
         <?php $form = ActiveForm::begin(); ?>
 
+        <?php /*= $form->field($model, 'bankname')->widget(StringField::class, [])?>
+
+        <?= $form->field($model, 'bik')->widget(StringField::class, [])?>
+
+        <?= $form->field($model, 'correspondentaccount')->widget(StringField::class, [])?>
+
+        <?= $form->field($model, 'invoicenumber')->widget(StringField::class, [])?>
+
         <?= $form->field($model, 'inn')->widget(StringField::class, [])?>
 
-        <?= $form->field($model, 'type')->widget(DropDownField::class, [
-            'items' => \mirocow\ofd\helpers\SettingsHelper::typeList()
-        ])?>
+        <?= $form->field($model, 'kpp')->widget(StringField::class, [])?>
+
+        <?= $form->field($model, 'organisationname')->widget(StringField::class, [])?>
+
+        <?= $form->field($model, 'organisationaddress')->widget(StringField::class, [])*/?>
+
+        <?= $form->field($model, 'inn')->widget(StringField::class, [])?>
 
         <?= $form->field($model, 'email')->widget(StringField::class, [])?>
+
+        <?= $form->field($model, 'phone')->widget(StringField::class, [])?>
 
         <?= $form->field($model, 'taxSystem')->widget(DropDownField::class, [
             'items' => \mirocow\ofd\helpers\SettingsHelper::taxSystemList(),
