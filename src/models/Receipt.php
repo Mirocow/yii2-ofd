@@ -37,7 +37,7 @@ class Receipt extends Model
             [['create_at'], 'safe'],
             [['inn'], 'string', 'max' => 12],
             [['inn'], 'validateInn'],
-            [['invoice'], 'string', 'max' => 20],
+            [['invoice', 'type'], 'string', 'max' => 20],
             [['email', 'phone'], 'string', 'max' => 50],
             [['created_at'], 'safe'],
         ];
