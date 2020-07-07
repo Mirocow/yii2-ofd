@@ -13,6 +13,7 @@ use yii\base\Model;
  * @property string $invoice Идентификатор счета, на основании которого генерируется чек
  * @property string $email
  * @property string $phone
+ * @property string $created_at
  *
  */
 class Receipt extends Model
@@ -25,6 +26,7 @@ class Receipt extends Model
     public $type;
     public $email;
     public $phone;
+    public $created_at;
 
     /**
      * {@inheritdoc}
@@ -37,6 +39,7 @@ class Receipt extends Model
             [['inn'], 'validateInn'],
             [['invoice'], 'string', 'max' => 20],
             [['email', 'phone'], 'string', 'max' => 50],
+            [['created_at'], 'safe'],
         ];
     }
 
@@ -51,6 +54,7 @@ class Receipt extends Model
             'type' => Yii::t('app', 'Type'),
             'email' => Yii::t('app', 'Email'),
             'phone' => Yii::t('app', 'Phone'),
+            'created_at' => Yii::t('app', 'Created'),
         ];
     }
 

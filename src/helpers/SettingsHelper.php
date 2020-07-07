@@ -15,12 +15,12 @@ class SettingsHelper
      */
     static function taxSystemList() {
         return [
-            '0' => Yii::t('app', 'Common'),
-            '1' => Yii::t('app', 'Simple In'),
-            '2' => Yii::t('app', 'Simple In-Out'),
-            '3' => Yii::t('app', 'Unified'),
-            '4' => Yii::t('app', 'Unified Agricultural'),
-            '5' => Yii::t('app', 'Patent'),
+            'Common' => Yii::t('app', 'Common'),
+            'SimpleIn' => Yii::t('app', 'Simple In'),
+            'SimpleInOut' => Yii::t('app', 'Simple In-Out'),
+            'Unified' => Yii::t('app', 'Unified'),
+            'UnifiedAgricultural' => Yii::t('app', 'Unified Agricultural'),
+            'Patent' => Yii::t('app', 'Patent'),
         ];
     }
 
@@ -31,6 +31,7 @@ class SettingsHelper
      */
     static function taxList() {
         return [
+            //'VatNo' => Yii::t('app', 'НДС не облагается'),
             'Vat0' => Yii::t('app', 'VAT Free'),
             'Vat10' => Yii::t('app', 'VAT 10%'),
             'Vat18' => Yii::t('app', 'VAT 18%'),

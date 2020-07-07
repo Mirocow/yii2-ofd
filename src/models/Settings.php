@@ -19,7 +19,7 @@ class Settings extends Model
     private $inn;
     private $email;
     private $phone;
-    private $taxsystem;
+    private $taxSystem;
     private $tax;
     private $paymentMethod;
     private $paymentType;
@@ -335,11 +335,11 @@ class Settings extends Model
     /**
      * @return mixed
      */
-    public function getTaxSystem()
+    public function getTaxSystem($defaultValue = 'Common')
     {
         $model = \mirocow\settings\models\Settings::find()
-            ->where(['key'   => 'tax_system', 'group_name' => 'ofd'])->one();
-        return $model->value ?? '';
+            ->where(['key'   => 'taxSystem', 'group_name' => 'ofd'])->one();
+        return $model->value ?? $defaultValue;
     }
 
     /**
@@ -347,17 +347,17 @@ class Settings extends Model
      */
     public function setTaxSystem($value)
     {
-        $this->taxsystem = $value;
+        $this->taxSystem = $value;
     }
 
     /**
      * @return mixed
      */
-    public function getTax()
+    public function getTax($defaultValue = 'vat0')
     {
         $model = \mirocow\settings\models\Settings::find()
             ->where(['key'   => 'tax', 'group_name' => 'ofd'])->one();
-        return $model->value ?? '';
+        return $model->value ?? $defaultValue;
     }
 
     /**
@@ -371,11 +371,11 @@ class Settings extends Model
     /**
      * @return mixed
      */
-    public function getPaymentMethod()
+    public function getPaymentMethod($defaultValue = 1)
     {
         $model = \mirocow\settings\models\Settings::find()
-            ->where(['key'   => 'payment_method', 'group_name' => 'ofd'])->one();
-        return $model->value ?? '';
+            ->where(['key'   => 'paymentMethod', 'group_name' => 'ofd'])->one();
+        return $model->value ?? $defaultValue;
     }
 
     /**
@@ -389,11 +389,11 @@ class Settings extends Model
     /**
      * @return mixed
      */
-    public function getPaymentType()
+    public function getPaymentType($defaultValue = 4)
     {
         $model = \mirocow\settings\models\Settings::find()
-            ->where(['key'   => 'payment_type', 'group_name' => 'ofd'])->one();
-        return $model->value ?? '';
+            ->where(['key'   => 'paymentType', 'group_name' => 'ofd'])->one();
+        return $model->value ?? $defaultValue;
     }
 
     /**
@@ -407,11 +407,11 @@ class Settings extends Model
     /**
      * @return mixed
      */
-    public function getPaymentItemsPaymentType()
+    public function getPaymentItemsPaymentType($defaultValue = 1)
     {
         $model = \mirocow\settings\models\Settings::find()
-            ->where(['key'   => 'payment_items.payment_type', 'group_name' => 'ofd'])->one();
-        return $model->value ?? '';
+            ->where(['key'   => 'paymentItemsPaymentType', 'group_name' => 'ofd'])->one();
+        return $model->value ?? $defaultValue;
     }
 
     /**

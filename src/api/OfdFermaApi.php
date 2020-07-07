@@ -8,6 +8,7 @@ use mirocow\ofd\models\AuthToken;
 use mirocow\ofd\models\Receipt;
 use mirocow\ofd\models\ReceiptItem;
 use mirocow\ofd\models\ReceiptStatus;
+use mirocow\settings\helpers\SettingsHelper;
 use Yii;
 use yii\base\Component;
 use yii\base\Exception;
@@ -83,7 +84,7 @@ class OfdFermaApi extends Component
      */
     public function addReceipt(Receipt $receipt, $type = self::TYPE_INCOME)
     {
-        $invoiceId = $receipt->invoice . $type;
+        $invoiceId = $receipt->invoice .'-'. $type;
 
         if ($this->checkReceipt($receipt)){
             $this->logMessage("Чек {$type} для заказа {$invoiceId} уже существует в реестре");
@@ -91,40 +92,17 @@ class OfdFermaApi extends Component
 
         $items = array();
 
-        SWITCH($this->settings->tax){
-            case 'vat0':
-                $vat = 'Vat0';
-            break;
+        $vat = $this->settings->getTax();
 
-            case 'vat10':
-                $vat = 'Vat10';
-            break;
-
-            case 'vat18':
-                $vat = 'Vat18';
-            break;
-
-            case 'vat110':
-                $vat = 'CalculatedVat10110';
-            break;
-
-            case 'vat118':
-                $vat = 'CalculatedVat18118';
-            break;
-
-            default:
-                $vat = $ofd_nds;
-        }
-
-        $paymentMethod = $this->settings->paymentMethod;
+        $paymentMethod = $this->settings->getPaymentMethod();
 
         /** @var ReceiptItem $receiptItem */
         foreach ($receipt->getItems() as $receiptItem) {
             $items[] = array(
                 'Label' => $receiptItem->label,
-                'Price' => $receiptItem->price,
-                'Quantity' => $receiptItem->quantity,
-                'Amount' => $receiptItem->amount,
+                'Price' => $this->formatFloat($receiptItem->price),
+                'Quantity' => $this->formatFloat($receiptItem->quantity),
+                'Amount' => $this->formatFloat($receiptItem->price * $receiptItem->quantity),
                 'Vat' => $receiptItem->vat ?? $vat,
                 'PaymentMethod' => $receiptItem->payment_method ?? $paymentMethod,
             );
@@ -134,17 +112,25 @@ class OfdFermaApi extends Component
             $this->logMessage(Yii::t('app','Для заказа не передан список товаров'));
         }
 
+        $receipt->type = $type;
+
         $customerReceipt = new \stdClass();
-        $customerReceipt->TaxationSystem = $this->settings->taxSystem;
-        $customerReceipt->Email = $this->settings->email;
-        $customerReceipt->Phone = $this->fermaFormatPhone($this->settings->phone);
+        $customerReceipt->TaxationSystem = $this->settings->getTaxSystem();
+        if($email = $this->settings->getEmail()) {
+            $customerReceipt->Email = $email;
+        }
+        if($phone = $this->settings->getPhone()) {
+            $customerReceipt->Phone = $this->fermaFormatPhone($phone);
+        }
         $customerReceipt->Items = $items;
 
+        $created_at = $receipt->created_at ?? time();
+
         $request = new \stdClass();
-        $request->Inn = $this->settings->inn;
-        $request->Type = $type;
+        $request->Inn = $this->settings->getInn();
+        $request->Type = $receipt->type;
         $request->InvoiceId = $invoiceId;
-        $request->LocalDate = date('Y-m-d\TH:i:s', $receipt->create_at);
+        $request->LocalDate = date('Y-m-d\TH:i:s', $created_at);
         $request->CustomerReceipt = $customerReceipt;
 
         $data = new \stdClass();
@@ -157,6 +143,17 @@ class OfdFermaApi extends Component
         }
 
         return $result['ReceiptId'];
+    }
+
+    /**
+     * @param $int
+     * @param int $count
+     *
+     * @return false|float
+     */
+    private function formatFloat( $int, $count = 2)
+    {
+        return	round( (float)$int , $count);
     }
 
     /**
@@ -179,7 +176,7 @@ class OfdFermaApi extends Component
         }
 
         $attributes = [
-            'invoice' => $receipt->invoice,
+            'invoice' => $reciept->invoice,
             'type' => $reciept->type,
             'receiptId' => $receiptId,
             'status_code' => (string) $result['StatusCode'],
