@@ -29,14 +29,6 @@ class Receipt extends Model
     /**
      * {@inheritdoc}
      */
-    public static function tableName()
-    {
-        return 'ofd_receipt';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     public function rules()
     {
         return [
@@ -67,7 +59,8 @@ class Receipt extends Model
      *
      * @return bool
      */
-    public function validateInn($attribute) {
+    public function validateInn($attribute)
+    {
         $result = false;
         $inn = (string) $this->{$attribute};
         if (!$inn) {

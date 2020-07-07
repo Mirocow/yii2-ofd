@@ -25,14 +25,6 @@ class ReceiptItem extends Model
     /**
      * {@inheritdoc}
      */
-    public static function tableName()
-    {
-        return 'ofd_receipt_item';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     public function rules()
     {
         return [
