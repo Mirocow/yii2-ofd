@@ -52,10 +52,12 @@ class ReceiptStatus extends \yii\db\ActiveRecord
     public function behaviors()
     {
         return [
-            'class' => TimestampBehavior::className(),
-            'createdAtAttribute' => 'create_at',
-            'updatedAtAttribute' => 'update_at',
-            'value' => new Expression('NOW()'),
+            [
+                'class' => TimestampBehavior::className(),
+                'createdAtAttribute' => 'create_at',
+                'updatedAtAttribute' => 'update_at',
+                'value' => new Expression('NOW()'),
+            ],
         ];
     }
 

@@ -189,7 +189,7 @@ class OfdFermaApi extends Component
         if(!empty($result['Device'])){
             $attributes = ArrayHelper::merge($attributes, [
                 'device_id' => (string) $result['Device']['DeviceId'],
-                'rnv' => (string) $result['Device']['RNM'],
+                'rnm' => (string) $result['Device']['RNM'],
                 'zn' => (string) $result['Device']['ZN'],
                 'fn' => (string) $result['Device']['FN'],
                 'fdn' => (string) $result['Device']['FDN'],

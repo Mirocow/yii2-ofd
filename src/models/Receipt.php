@@ -34,7 +34,7 @@ class Receipt extends Model
     public function rules()
     {
         return [
-            [['create_at', 'update_at'], 'safe'],
+            [['create_at'], 'safe'],
             [['inn'], 'string', 'max' => 12],
             [['inn'], 'validateInn'],
             [['invoice'], 'string', 'max' => 20],
