@@ -86,6 +86,8 @@ class OfdFermaApi extends Component
     {
         $invoiceId = $receipt->invoice .'-'. $type;
 
+        $receipt->type = $type;
+
         if ($this->checkReceipt($receipt)){
             $this->logMessage("Чек {$type} для заказа {$invoiceId} уже существует в реестре");
         }
@@ -111,8 +113,6 @@ class OfdFermaApi extends Component
         if (!count($items)) {
             $this->logMessage(Yii::t('app','Для заказа не передан список товаров'));
         }
-
-        $receipt->type = $type;
 
         $customerReceipt = new \stdClass();
         $customerReceipt->TaxationSystem = $this->settings->getTaxSystem();
