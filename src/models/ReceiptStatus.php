@@ -46,6 +46,7 @@ class ReceiptStatus extends \yii\db\ActiveRecord
             [['status_code', 'status_name', 'modified_date_utc', 'receipt_date_utc', 'device_id', 'rnm', 'zn', 'fn', 'fdn', 'fpd'], 'string', 'max' => 20],
             [['invoice', 'type'], 'string', 'max' => 20],
             [['status_message'], 'string', 'max' => 255],
+            [['receiptId'], 'string', 'max' => 36],
         ];
     }
 
@@ -68,6 +69,7 @@ class ReceiptStatus extends \yii\db\ActiveRecord
     {
         return [
             'id' => Yii::t('app', 'ID'),
+            'receiptId' => Yii::t('app', 'Receipt ID'),
             'invoice' => Yii::t('app', 'Invoice'),
             'type' => Yii::t('app', 'Type'),
             'status_code' => Yii::t('app', 'Status Code'),
