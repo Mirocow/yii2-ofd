@@ -139,7 +139,7 @@ class OfdFermaApi extends Component
         $result = $this->request( self::REQUEST_RECEIPT . '?' . http_build_query(['AuthToken' => $this->authToken->getToken()]), $data);
 
         if(!empty($result['ReceiptId'])){
-            $this->getReceiptStatus($result['ReceiptId'], $receipt);
+            $this->updateReceiptStatus($result['ReceiptId'], $receipt);
         }
 
         return $result['ReceiptId'];
@@ -163,17 +163,9 @@ class OfdFermaApi extends Component
      * @return bool
      * @throws OfdException
      */
-    public function getReceiptStatus(string $receiptId, Receipt $reciept)
+    public function updateReceiptStatus(string $receiptId, Receipt $reciept)
     {
-        $result = $this->request(self::REQUEST_STATUS . '?' . http_build_query(['AuthToken' => $this->authToken->getToken()]), [
-            'Request' => [
-                'ReceiptId' => $receiptId,
-            ],
-        ]);
-
-        if(!isset($result['StatusCode'])) {
-            $this->logMessage('Неверный формат ответа');
-        }
+        $result = $this->getReceiptStatus($receiptId);
 
         $attributes = [
             'invoice' => $reciept->invoice,
@@ -197,8 +189,33 @@ class OfdFermaApi extends Component
             ]);
         }
 
-        $status = new ReceiptStatus($attributes);
+        $status = ReceiptStatus::findOne(['receiptId' => $receiptId]);
+        if(!$status) {
+            $status = new ReceiptStatus();
+        }
+        $status->load($attributes, '');
         return $status->save();
+    }
+
+    /**
+     * @param string $receiptId
+     *
+     * @return mixed
+     * @throws OfdException
+     */
+    public function getReceiptStatus(string $receiptId)
+    {
+        $result = $this->request(self::REQUEST_STATUS . '?' . http_build_query(['AuthToken' => $this->authToken->getToken()]), [
+            'Request' => [
+                'ReceiptId' => $receiptId,
+            ],
+        ]);
+
+        if(!isset($result['StatusCode'])) {
+            $this->logMessage('Неверный формат ответа');
+        }
+
+        return $result;
     }
 
     /**
