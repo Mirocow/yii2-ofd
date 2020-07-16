@@ -31,7 +31,7 @@ class SettingsHelper
      */
     static function taxList() {
         return [
-            //'VatNo' => Yii::t('app', 'НДС не облагается'),
+            'VatNo' => Yii::t('app', 'Without vat'),
             'Vat0' => Yii::t('app', 'VAT Free'),
             'Vat10' => Yii::t('app', 'VAT 10%'),
             'Vat18' => Yii::t('app', 'VAT 18%'),
