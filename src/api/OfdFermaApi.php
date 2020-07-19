@@ -26,9 +26,14 @@ class OfdFermaApi extends Component
 
     const REQUEST_STATUS = '/kkt/cloud/status';
 
+    // Получение денежных средств от покупателя
     const TYPE_INCOME = 'Income';
 
+    // Возврат денежных средств, полученных от покупателя
     const TYPE_INCOME_RETURN = 'IncomeReturn';
+
+    // Чек коррекции/приход
+    const TYPE_INCOME_CORRECTION = 'IncomeCorrection';
 
     public $login;
     public $password;
