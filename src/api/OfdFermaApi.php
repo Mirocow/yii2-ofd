@@ -121,12 +121,8 @@ class OfdFermaApi extends Component
 
         $customerReceipt = new \stdClass();
         $customerReceipt->TaxationSystem = $this->settings->getTaxSystem();
-        if($email = $this->settings->getEmail()) {
-            $customerReceipt->Email = $email;
-        }
-        if($phone = $this->settings->getPhone()) {
-            $customerReceipt->Phone = $this->fermaFormatPhone($phone);
-        }
+        $customerReceipt->Email = $receipt->email;
+        $customerReceipt->Phone = $receipt->phone;
         $customerReceipt->Items = $items;
 
         $created_at = $receipt->created_at ?? time();
